@@ -8,11 +8,9 @@ from pathlib import Path
 from .config import Config
 from .utils import remove_directory
 
-def unzip_file(zip_path):
-    print("This is a placeholder")
-
-def unrar_file(rar_path):
-    print("This is a placeholder")
+def unzip_file(zip_path): pass
+def unrar_file(rar_path): pass
+def unpk_file(rar_path): pass
 
 packers = {
     '.zip': {
@@ -22,16 +20,21 @@ packers = {
     '.rar': {
         'unpack': unrar_file,
         'suffix': '_rar',
+    },
+    '.docx': {
+        'unpack': unzip_file,
+        'suffix': '_docx',
     }
 }
 
-def unzip_file(zip_path, suffix):
-    extract_dir = os.path.join(os.path.dirname(zip_path), os.path.splitext(os.path.basename(zip_path))[0] + suffix)
+def unzip_file(arc_path, suffix):
+    extract_dir = os.path.join(os.path.dirname(arc_path), os.path.splitext(os.path.basename(arc_path))[0] + suffix)
     os.makedirs(extract_dir, exist_ok=True)
-    zipfile.ZipFile(zip_path, 'r').extractall(extract_dir)
-    print(f'Распакован: {os.path.basename(zip_path)} -> {extract_dir}')
+    zipfile.ZipFile(arc_path, 'r').extractall(extract_dir)
+    print(f'Распакован: {os.path.basename(arc_path)} -> {extract_dir}')
 
 packers['.zip']['unpack'] = unzip_file
+packers['.docx']['unpack'] = unzip_file
 
 def unpack_all():
     src_dir = Config.get('paths.src_dir')

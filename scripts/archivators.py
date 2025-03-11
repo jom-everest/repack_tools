@@ -54,7 +54,7 @@ def make_archive_from_uncompressible():
     if files_count > 0:
         Z_PATH = Config.get('tools.7z_path')
         target_zip = os.path.join(dst_dir, 'arc_un.zip')
-        subprocess.run([Z_PATH, 'a', '-tzip', '-mx0', target_zip, target_dir], check=True)
+        subprocess.run([Z_PATH, 'a', '-tzip', '-mx1', target_zip, target_dir], check=True)
 
         target_tar = os.path.join(dst_dir, 'arc_un.tar')
         with tarfile.open(target_tar, 'w', bufsize = 10**8) as tar:
@@ -62,7 +62,6 @@ def make_archive_from_uncompressible():
 
 #            for entry in os.scandir(target_dir):
 #                tar.add(entry.path, arcname=entry.name)
-
     shutil.rmtree(target_dir)
 
 def make_archive_zstd():

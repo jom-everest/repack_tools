@@ -35,11 +35,9 @@ def main():
     make_archive_from_uncompressible()
     make_archive_zstd()
 
+    restore()
     remove_unpacked_files()
     remove_pjxl_files()
-
-    restore()
-
 
 
 if __name__ == "__main__":

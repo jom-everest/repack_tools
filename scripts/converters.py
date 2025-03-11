@@ -38,10 +38,40 @@ def compress_png_to_jxl():
         executor.map(wrapper, files)
     move_files(src_dir, tmp_dir, files)
 
+def _compress_png_to_webp(png_path, src_dir):
+    CWEBP_PATH = Config.get('tools.cwebp_path')
+    full_png_path = os.path.join(src_dir, png_path)
+    output_path = os.path.splitext(full_png_path)[0] + '.pwebp'
+    subprocess.run([
+        CWEBP_PATH, 
+        full_png_path, 
+        '-o', output_path,
+        '-lossless',
+        '-z', '9'
+    ], capture_output=True, check=True)
+
+def compress_png_to_webp():
+    src_dir = Config.get('paths.src_dir')
+    tmp_dir = Config.get('paths.tmp_dir')
+    max_workers = Config.get('converters.webp_to_jxl.threads')
+    files = get_all_files_by_ext(src_dir, '.png')
+
+    def wrapper(file):
+        _compress_png_to_webp(file, src_dir=src_dir)
+
+    with ThreadPoolExecutor(max_workers) as executor:
+        executor.map(wrapper, files)
+    move_files(src_dir, tmp_dir, files)
 
 def remove_pjxl_files():
     src_dir = Path(Config.get('paths.src_dir'))
     for file_path in src_dir.rglob('*'):
         if file_path.is_file() and file_path.name.endswith('.pjxl'):
+            os.unlink(file_path)
+
+def remove_pwebp_files():
+    src_dir = Path(Config.get('paths.src_dir'))
+    for file_path in src_dir.rglob('*'):
+        if file_path.is_file() and file_path.name.endswith('.pwebp'):
             os.unlink(file_path)
 
