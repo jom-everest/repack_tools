@@ -50,11 +50,11 @@ def make_archive_from_uncompressible():
         target_zip = os.path.join(dst_dir, 'arc_un.zip')
         subprocess.run([Z_PATH, 'a', '-tzip', '-mx1', target_zip, os.path.join(target_dir, "*")], check=True)
 
-        target_tar = os.path.join(dst_dir, 'arc_un.tar')
-        with tarfile.open(target_tar, 'w', bufsize = 10**8) as tar:
+#        target_tar = os.path.join(dst_dir, 'arc_un.tar')
+#        with tarfile.open(target_tar, 'w', bufsize = 10**8) as tar:
 #            tar.add(target_dir, arcname=os.path.basename(target_dir))
-            for entry in os.scandir(target_dir):
-                tar.add(entry.path, arcname=entry.name)
+#            for entry in os.scandir(target_dir):
+#                tar.add(entry.path, arcname=entry.name)
     shutil.rmtree(target_dir)
 
 def make_archive_zstd():

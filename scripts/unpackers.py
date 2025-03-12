@@ -17,7 +17,7 @@ def unzip_file(arc_path, suffix):
 
 def zip_file(dir_path, arc_path):
     Z_PATH = Config.get('tools.7z_path')
-    subprocess.run([Z_PATH, 'a', '-tzip', '-mx5', arc_path, os.path.join(dir_path, "*")], check=True)
+    subprocess.run([Z_PATH, 'a', '-tzip', '-mfb=64', '-mx7', arc_path, os.path.join(dir_path, "*")], check=True)
 
 packers = {
     '.zip': {

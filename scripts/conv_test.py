@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 def converter():
-    root_path = Path("../1/")
+    root_path = Path("../11/")
     for png_file in root_path.rglob("*.png"):
         webp_path = png_file.with_suffix(".webp")
         jxl_path = png_file.with_suffix(".jxl")
@@ -13,7 +13,15 @@ def converter():
             '-o', str(webp_path),
             '-lossless',
             '-z', '9'
-        ], capture_output=True, check=True)
+        ], check=True)
+
+        subprocess.run([
+            '../bin/cjxl.exe',
+            str(png_file), 
+            str(jxl_path),
+            '-q', '100',
+            '-e', '10',
+        ], check=True)
 
 def restore():
     root_path = Path("../1/")
@@ -26,6 +34,6 @@ def restore():
             '-o', str(png_path),
         ], capture_output=True, check=True)
 
-#converter()
+converter()
 
-restore()
+#restore()

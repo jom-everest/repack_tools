@@ -21,7 +21,7 @@ def _compress_png_to_jxl(png_path, src_dir):
         full_png_path, 
         output_path,
         '-e', '10',
-        '--lossless_jpeg=1',
+        '-q', '100',
         '--num_threads', '1'
     ], capture_output=True, check=True)
 
@@ -76,6 +76,32 @@ def remove_pwebp_files():
         if file_path.is_file() and file_path.name.endswith('.pwebp'):
             os.unlink(file_path)
 
+def _restore_png_from_webp(webp_path, src_dir):
+    DWEBP_PATH = Config.get('tools.dwebp_path')
+    OXI_PATH = Config.get('tools.oxi_path')
+    full_path = os.path.join(src_dir, webp_path)
+    output_path = os.path.splitext(full_path)[0] + '.png'
+
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        temp_png = tmp.name
+    try:
+        subprocess.run([DWEBP_PATH, full_path, "-o", temp_png], capture_output=True, check=True)
+        subprocess.run([OXI_PATH, "-omax", "--strip", "all", "--threads", "1", temp_png], check=True)
+        os.rename(temp_png, output_path)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Ошибка при обработке {webp_path}: {e}")
+        os.remove(temp_png)  # Удаляем временный файл
+
+def restore_png_from_webp():
+    target_dir = Config.get('paths.dst_dir')
+    files = get_all_files_by_ext(target_dir, '.pwebp')
+
+    def wrapper(file):
+        _restore_png_from_webp(file, src_dir=target_dir)
+        os.unlink(os.path.join(target_dir, file))
+
+    with ThreadPoolExecutor(8) as executor:
+        executor.map(wrapper, files)
 
 def _restore_png_from_jxl(jxl_path, src_dir):
     DJXL_PATH = Config.get('tools.djxl_path')
@@ -87,19 +113,19 @@ def _restore_png_from_jxl(jxl_path, src_dir):
         temp_png = tmp.name
     try:
         subprocess.run([DJXL_PATH, full_path, temp_png, '--num_threads', '1'], capture_output=True, check=True)
-        subprocess.run([OXI_PATH, "-omax", "-Z", "--strip", "safe", "--threads", "1", temp_png], check=True)
+        subprocess.run([OXI_PATH, "-omax", "--strip", "all", "--threads", "1", temp_png], check=True)
         os.rename(temp_png, output_path)
     except subprocess.CalledProcessError as e:
         print(f"❌ Ошибка при обработке {jxl_path}: {e}")
         os.remove(temp_png)  # Удаляем временный файл
 
 def restore_png_from_jxl():
-    _dir = Config.get('paths.dst_dir')
-    files = get_all_files_by_ext(_dir, '.pjxl')
+    target_dir = Config.get('paths.dst_dir')
+    files = get_all_files_by_ext(target_dir, '.pjxl')
 
     def wrapper(file):
-        _restore_png_from_jxl(file, src_dir=_dir)
-        os.unlink(os.path.join(_dir, file))
+        _restore_png_from_jxl(file, src_dir=target_dir)
+        os.unlink(os.path.join(target_dir, file))
 
     with ThreadPoolExecutor(8) as executor:
         executor.map(wrapper, files)
