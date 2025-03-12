@@ -5,6 +5,7 @@ import shutil
 import sys
 from functools import partial
 from pathlib import Path
+import tempfile
 
 
 from .config import Config
@@ -59,7 +60,7 @@ def compress_png_to_webp():
     def wrapper(file):
         _compress_png_to_webp(file, src_dir=src_dir)
 
-    with ThreadPoolExecutor(max_workers) as executor:
+    with ThreadPoolExecutor(max_workers = 8) as executor:
         executor.map(wrapper, files)
     move_files(src_dir, tmp_dir, files)
 
@@ -74,4 +75,32 @@ def remove_pwebp_files():
     for file_path in src_dir.rglob('*'):
         if file_path.is_file() and file_path.name.endswith('.pwebp'):
             os.unlink(file_path)
+
+
+def _restore_png_from_jxl(jxl_path, src_dir):
+    DJXL_PATH = Config.get('tools.djxl_path')
+    OXI_PATH = Config.get('tools.oxi_path')
+    full_path = os.path.join(src_dir, jxl_path)
+    output_path = os.path.splitext(full_path)[0] + '.png'
+
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        temp_png = tmp.name
+    try:
+        subprocess.run([DJXL_PATH, full_path, temp_png, '--num_threads', '1'], capture_output=True, check=True)
+        subprocess.run([OXI_PATH, "-omax", "-Z", "--strip", "safe", "--threads", "1", temp_png], check=True)
+        os.rename(temp_png, output_path)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Ошибка при обработке {jxl_path}: {e}")
+        os.remove(temp_png)  # Удаляем временный файл
+
+def restore_png_from_jxl():
+    _dir = Config.get('paths.dst_dir')
+    files = get_all_files_by_ext(_dir, '.pjxl')
+
+    def wrapper(file):
+        _restore_png_from_jxl(file, src_dir=_dir)
+        os.unlink(os.path.join(_dir, file))
+
+    with ThreadPoolExecutor(8) as executor:
+        executor.map(wrapper, files)
 

@@ -19,7 +19,7 @@ class Config:
         # Расширения файлов
         'extensions': {
             'uncompressible': {
-                '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.jxl', '.pjxl',
+                '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.jxl', '.pjxl', '.pwebp',
                 '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm',
                 '.mp3', '.aac', '.ogg', '.m4a', '.opus', '.flac', '.alac',
                 '.zip', '.rar', '.7z', '.gz', '.bz2', '.xz', '.tar.gz', '.tgz', '.tar.bz2', '.tar.xz',
@@ -37,10 +37,13 @@ class Config:
         
         # Внешние инструменты
         'tools': {
+            'oxi_path': 'bin/oxipng.exe',
+            'cwebp_path': 'bin/cwebp.exe',
+            'dwebp_path': 'bin/dwebp.exe',
             'zstd_path': 'bin/zstd.exe',
             'cjxl_path': 'bin/cjxl.exe',
             'djxl_path': 'bin/djxl.exe',
-            '7z_path': 'bin/7z.exe'
+            '7z_path': 'bin/7z.exe',
         },
         
         # Упаковщики

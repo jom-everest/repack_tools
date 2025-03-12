@@ -2,7 +2,7 @@ import os
 
 from scripts.utils import remove_directory, move_dir
 from scripts.archivators import make_archive_from_uncompressible, make_archive_zstd
-from scripts.converters import compress_png_to_jxl, remove_pjxl_files
+from scripts.converters import compress_png_to_webp, remove_pwebp_files, compress_png_to_jxl, remove_pjxl_files
 from scripts.unpackers import unpack_all, remove_unpacked_files
 from scripts.config import Config
 
