@@ -10,11 +10,14 @@ from .utils import move_all_files_by_ext
 def unpack_un():
     src_dir = Config.get('paths.src_dir')
     dst_dir = Config.get('paths.dst_dir')
-    target_file = os.path.join(src_dir, 'arc_un.zip')
+    target_file = os.path.join(src_dir, 'arc_un.7z')
 
     if os.path.exists(target_file):
-        with zipfile.ZipFile(target_file, 'r') as zip_ref:
-            zip_ref.extractall(path=dst_dir)
+        Z_PATH = Config.get('tools.7z_path')
+        subprocess.run([Z_PATH, 'x', target_file, f"-o{dst_dir}"], check=True)
+
+#        with zipfile.ZipFile(target_file, 'r') as zip_ref:
+#            zip_ref.extractall(path=dst_dir)
 
 #    if os.path.exists(target_file):
 #        with tarfile.open(target_file, 'r') as tar:
@@ -43,18 +46,20 @@ def make_archive_from_uncompressible():
     target_dir = os.path.join(dst_dir, 'arc_un')
     os.makedirs(target_dir, exist_ok=True)
 
-    files_count = move_all_files_by_ext(src_dir, target_dir, Config.get('extensions.uncompressible'))
+    files_count = move_all_files_by_ext(src_dir, target_dir, Config.get('extensions.uncompressible') | Config.get('extensions.user'))
 
     if files_count > 0:
         Z_PATH = Config.get('tools.7z_path')
-        target_zip = os.path.join(dst_dir, 'arc_un.zip')
-        subprocess.run([Z_PATH, 'a', '-tzip', '-mx1', target_zip, os.path.join(target_dir, "*")], check=True)
+        target_zip = os.path.join(dst_dir, 'arc_un.7z')
+        subprocess.run([Z_PATH, 'a', '-t7z', '-mx=0', "-ms=on", target_zip, os.path.join(target_dir, "*")], check=True)
 
         target_tar = os.path.join(dst_dir, 'arc_un.tar')
         with tarfile.open(target_tar, 'w', bufsize = 10**8) as tar:
 #            tar.add(target_dir, arcname=os.path.basename(target_dir))
             for entry in os.scandir(target_dir):
                 tar.add(entry.path, arcname=entry.name)
+
+    move_all_files_by_ext(target_dir, src_dir, Config.get('extensions.uncompressible'))
     shutil.rmtree(target_dir)
 
 def make_archive_zstd():
@@ -74,7 +79,7 @@ def make_archive_zstd():
         [ZSTD_PATH, '-19', '-T8', '--long', target_tar, '-o', target_zst],
         check=True
     )
-    os.remove(target_tar)
+#    os.remove(target_tar)
 
 
 def make_archive_zstd_pipe():

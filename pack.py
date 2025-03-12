@@ -30,14 +30,14 @@ def main():
     remove_directory(dst_dir)
 
     unpack_all()
-    compress_png_to_jxl()
+    compress_png_to_webp()
 
     make_archive_from_uncompressible()
     make_archive_zstd()
 
     restore()
     remove_unpacked_files()
-    remove_pjxl_files()
+    remove_pwebp_files()
 
 
 if __name__ == "__main__":

@@ -18,8 +18,11 @@ class Config:
         
         # Расширения файлов
         'extensions': {
+            'user': {
+                '.pjxl', '.pwebp',
+            },
             'uncompressible': {
-                '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.jxl', '.pjxl', '.pwebp',
+                '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.jxl', 
                 '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm',
                 '.mp3', '.aac', '.ogg', '.m4a', '.opus', '.flac', '.alac',
                 '.zip', '.rar', '.7z', '.gz', '.bz2', '.xz', '.tar.gz', '.tgz', '.tar.bz2', '.tar.xz',
