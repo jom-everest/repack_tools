@@ -1,8 +1,6 @@
 import os
 import shutil
-import tarfile
 import subprocess
-import zipfile
 
 from .config import Config
 from .utils import move_all_files_by_ext
@@ -16,13 +14,6 @@ def unpack_un():
         Z_PATH = Config.get('tools.7z_path')
         subprocess.run([Z_PATH, 'x', target_file, f"-o{dst_dir}"], check=True)
 
-#        with zipfile.ZipFile(target_file, 'r') as zip_ref:
-#            zip_ref.extractall(path=dst_dir)
-
-#    if os.path.exists(target_file):
-#        with tarfile.open(target_file, 'r') as tar:
-#            tar.extractall(path=dst_dir)
-
 def unpack_c():
     src_dir = Config.get('paths.src_dir')
     dst_dir = Config.get('paths.dst_dir')
@@ -32,13 +23,30 @@ def unpack_c():
         raise FileExistsError(f'Ошибка: {os.path.basename(zst_file)} отсутствует')
 
     ZSTD_PATH = Config.get('tools.zstd_path')
-    zstd_process = subprocess.Popen([ZSTD_PATH, '-d', '--stdout', zst_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    with tarfile.open(fileobj=zstd_process.stdout, mode='r|*') as tar:
-        tar.extractall(path=dst_dir)
+    Z_PATH = Config.get('tools.7z_path')
+    process_zstd = subprocess.Popen([ZSTD_PATH, '-d', '--stdout', zst_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process_7z = subprocess.Popen([Z_PATH, 'x', '-si', "-o" + dst_dir], stdin=process_zstd.stdout)
+    process_zstd.wait()
+    process_7z.wait()
+    
+def make_arc_pipe():
+    ZSTD_PATH = Config.get('tools.zstd_path')
+    Z_PATH = Config.get('tools.7z_path')
+    src_dir = Config.get('paths.src_dir')
+    dst_dir = Config.get('paths.dst_dir')
+    target_zst = os.path.join(dst_dir, 'arc_c.zst')
 
-    stdout, stderr = zstd_process.communicate()
-    if zstd_process.returncode != 0:
-            raise RuntimeError(f'Ошибка zstd: {stderr.decode().strip()}')
+    process_7z = subprocess.Popen(
+        [Z_PATH, "a", "-t7z", "-m0=Copy", "-mx=0", '-mhe=off', "-ms=on", "-so", os.path.join(src_dir, "*")], 
+        stdout=subprocess.PIPE
+    )
+    process_zstd = subprocess.Popen(
+        [ZSTD_PATH, "-19", "--ultra", "--long=31", "-f", "-T0", "-o", target_zst], 
+        stdin=process_7z.stdout
+    )
+    process_7z.stdout.close()
+    process_7z.wait()
+    process_zstd.wait()
 
 def make_archive_from_uncompressible():
     src_dir = Config.get('paths.src_dir')
@@ -51,54 +59,23 @@ def make_archive_from_uncompressible():
     if files_count > 0:
         Z_PATH = Config.get('tools.7z_path')
         target_zip = os.path.join(dst_dir, 'arc_un.7z')
-        subprocess.run([Z_PATH, 'a', '-t7z', '-mx=0', "-ms=on", target_zip, os.path.join(target_dir, "*")], check=True)
-
-        target_tar = os.path.join(dst_dir, 'arc_un.tar')
-        with tarfile.open(target_tar, 'w', bufsize = 10**8) as tar:
-#            tar.add(target_dir, arcname=os.path.basename(target_dir))
-            for entry in os.scandir(target_dir):
-                tar.add(entry.path, arcname=entry.name)
-
-    move_all_files_by_ext(target_dir, src_dir, Config.get('extensions.uncompressible'))
-    shutil.rmtree(target_dir)
+        subprocess.run([Z_PATH, 'a', '-t7z', '-m0=LZMA2', '-mx1', '-mhe=off', "-ms=on", target_zip, os.path.join(target_dir, "*")], check=True)
 
 def make_archive_zstd():
     ZSTD_PATH = Config.get('tools.zstd_path')
     src_dir = Config.get('paths.src_dir')
     dst_dir = Config.get('paths.dst_dir')
-    target_tar = os.path.join(dst_dir, 'arc_c.tar')
     target_zst = os.path.join(dst_dir, 'arc_c.zst')
     Config.set('paths.zstd_archive_file', target_zst)
 
-    with tarfile.open(target_tar, 'w', bufsize = 10**8) as tar:
-#        tar.add(src_dir, arcname = os.path.basename(src_dir))
-        for entry in os.scandir(src_dir):
-            tar.add(entry.path, arcname=entry.name)
-
+    Z_PATH = Config.get('tools.7z_path')
+    target_7z = os.path.join(dst_dir, 'arc_c.7z')
+    subprocess.run([Z_PATH, 'a', '-t7z', "-m0=Copy", '-mx0', "-ms=on", '-mhe=off', target_7z, os.path.join(src_dir, "*")], check=True)
+    
     subprocess.run(
-        [ZSTD_PATH, '-19', '-T8', '--long', target_tar, '-o', target_zst],
+        [ZSTD_PATH, '-f', '-19', '--ultra', '-T0', '--long=31', target_7z, '-o', target_zst],
         check=True
     )
-#    os.remove(target_tar)
+    os.unlink(target_7z)
+    subprocess.run([Z_PATH, 'a', '-t7z', '-m0=LZMA2', '-mx9', "-ms=on", '-mhe=off', target_7z, os.path.join(src_dir, "*")], check=True)
 
-
-def make_archive_zstd_pipe():
-    ZSTD_PATH = Config.get('tools.zstd_path')
-    src_dir = Config.get('paths.src_dir')
-    target_zst = os.path.join(Config.get('paths.dst_dir'), 'arc_c.zst')
-    Config.set('paths.zstd_archive_file', target_zst)
-
-    zstd_process = subprocess.Popen(
-        [ZSTD_PATH, '-19', '-T8', '--long', '-o', target_zst],
-        stdin=subprocess.PIPE,
-        bufsize=10**8
-    )
-    
-    with tarfile.open(fileobj=zstd_process.stdin, mode='w|') as tar:
-        tar.add(
-            src_dir, 
-            arcname=os.path.basename(src_dir)
-        )
-    
-    zstd_process.stdin.close()
-    zstd_process.wait()
