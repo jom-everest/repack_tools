@@ -1,6 +1,7 @@
 
 class Config:
     settings = {
+        'max_threads':16,
         # Пути к каталогам
         'paths': {
             'src_dir': '',
@@ -10,6 +11,7 @@ class Config:
         
         # Настройки архивации
         'archive': {
+            'type': '7z',
             'compression_level': 19,
             'threads': 8,
             'buffer_size': 10**8,
@@ -32,12 +34,6 @@ class Config:
             'video': {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm'},
         },
 
-        'converters': {
-            'png_to_jxl': {
-                'threads': 8,
-            }
-        },
-        
         # Внешние инструменты
         'tools': {
             'oxi_path': 'bin/oxipng.exe',

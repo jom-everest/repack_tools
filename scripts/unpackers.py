@@ -35,7 +35,6 @@ packers = {
 def unpack_all():
     src_dir = Config.get('paths.src_dir')
     tmp_dir = Config.get('paths.tmp_dir')
-    os.makedirs(tmp_dir, exist_ok=True)
 
     for root, dirs, files in os.walk(src_dir):
         for file in files:
