@@ -105,7 +105,7 @@ def restore_png_from_webp():
         executor.map(wrapper, files)
 
     OXI_PATH = Config.get('tools.oxi_path')
-    subprocess.run([OXI_PATH, "-o2", "--strip", "all", "-a", "-t", "16", '-r', target_dir], check=True)
+    subprocess.run([OXI_PATH, "-o2", "--strip", "all", "-a", "-t", "16", "-r", target_dir], check=True)
 
 
 def _restore_png_from_jxl(jxl_path, src_dir):

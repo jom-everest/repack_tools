@@ -3,13 +3,12 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-import py7zr
 from PIL import Image
 import numpy as np
-
+import py7zr
 
 from .config import Config
-from .utils import move_all_files_by_ext
+from .utils import move_all_files_by_ext, move_dir
 
 def unpack_un():
     src_dir = Config.get('paths.src_dir')
@@ -51,18 +50,6 @@ def unpack_c():
 #        if zstd_process.returncode != 0:
 #            raise RuntimeError(f'Ошибка zstd: {stderr.decode().strip()}')
 
-def make_arc_npy():
-    src_dir = Config.get('paths.src_dir')
-    dst_dir = Config.get('paths.dst_dir')
-    target_dir = os.path.join(dst_dir, 'arc_npy')
-    os.makedirs(target_dir, exist_ok=True)
-
-    files_count = move_all_files_by_ext(src_dir, target_dir, '.npy')
-    if files_count > 0:
-        Z_PATH = Config.get('tools.7z_path')
-        target_zip = os.path.join(dst_dir, 'arc_npy.7z')
-        subprocess.run([Z_PATH, 'a', '-t7z', '-m0=LZMA2', '-mx9', '-mhe=off', "-ms=on", '-mmt=8', target_zip, os.path.join(target_dir, "*")], check=True)
-
 def unpack_npy():
     src_dir = Config.get('paths.src_dir')
     target_file = os.path.join(src_dir, 'arc_npy.7z')
@@ -73,19 +60,6 @@ def unpack_npy():
             with archive.read([file_name]) as files:
                 image = Image.fromarray(np.load(files[file_name].read(), allow_pickle=True))
                 image.save(os.path.join(src_dir, file_name.replace('.npy', '.png')))
-
-def make_archive_from_uncompressible():
-    src_dir = Config.get('paths.src_dir')
-    dst_dir = Config.get('paths.dst_dir')
-    target_dir = os.path.join(dst_dir, 'arc_un')
-    os.makedirs(target_dir, exist_ok=True)
-
-    files_count = move_all_files_by_ext(src_dir, target_dir, Config.get('extensions.uncompressible') | Config.get('extensions.user'))
-
-    if files_count > 0:
-        Z_PATH = Config.get('tools.7z_path')
-        target_zip = os.path.join(dst_dir, 'arc_un.7z')
-        subprocess.run([Z_PATH, 'a', '-t7z', '-m0=LZMA2', '-mx3', '-mhe=off', '-mmt=8', "-ms=on", target_zip, os.path.join(target_dir, "*")], check=True)
 
 def make_archive():
     src_dir = Config.get('paths.src_dir')
@@ -120,23 +94,23 @@ def make_archive():
             process_zstd.wait()
 
 def make_archive(src_dir, target_name, archive_params):
-    Z_PATH = Config.get('tools.7z_path')
-    if (archive_params == None):
-        type = '7z', m = 'lzma2', mx = '9'
-    else:
-        type = '7z', m = 'lzma2', mx = '9'
+    type, m0, mx = ['7z', 'lzma2', '9']
+    if (archive_params.get('type') == '7z'):
+        type = '7z'
+        m0 = 'lzma2'
+        mx = archive_params.get('c_ratio', '9')
 
-    target_arc = target_name + '.7z'
-    m0 = 'lzma2'
-    mx = '9'
-    if (archive_params.type == 'PPMD'):
-        m0 = 'ppmd'
-    subprocess.run([Z_PATH, 'a', '-t7z', f'-m0={m0}', f'-mx{mx}', '-mhe=off', '-mmt=8', "-ms=on", target_arc, os.path.join(src_dir, "*")], check=True)
+    if (type == '7z'):
+        Z_PATH = Config.get('tools.7z_path')
+        target_arc = target_name + '.' + type
+        command = [Z_PATH, 'a', '-t7z', f'-m0={m0}', f'-mx{mx}', '-mhe=on', '-mmt=8', "-ms=on", target_arc, os.path.join(src_dir, "*")]
+        subprocess.run(command, check=True)
 
 def make_archive_all():
     src_dir = Config.get('paths.src_dir')
     dst_dir = Config.get('paths.dst_dir')
 
+    dirs = []
     for key, value in Config.get('groups').items():
         if (key == 'all'): continue
 
@@ -146,6 +120,23 @@ def make_archive_all():
         files_count = move_all_files_by_ext(src_dir, target_dir, exts)
         if files_count > 0:
             make_archive(target_dir, target_dir, value.get('archive_params'))
+            dirs.append(target_dir)
 
     target_name = os.path.join(dst_dir, 'arc_' + 'all')
     make_archive(src_dir, target_name, Config.get('groups.all.archive_params'))
+
+    for dir in dirs:
+        move_dir(dir, src_dir)
+
+def unpack_archive(file, dst_dir):
+    if (file.endswith('.7z')):
+        Z_PATH = Config.get('tools.7z_path')
+        subprocess.run([Z_PATH, 'x', file, f'-o{dst_dir}'])
+
+def unpack_archive_all():
+    src_dir = Config.get('paths.src_dir')
+    dst_dir = Config.get('paths.dst_dir')
+
+    for file in os.listdir(src_dir):
+        if file.startswith('arc_') and os.path.isfile(os.path.join(src_dir, file)):
+            unpack_archive(os.path.join(src_dir, file), dst_dir)

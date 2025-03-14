@@ -1,7 +1,7 @@
 import os
 
 from scripts.config import Config
-from scripts.archivators import unpack_c, unpack_un, unpack_npy
+from scripts.archivators import unpack_c, unpack_un, unpack_npy, unpack_archive_all
 from scripts.unpackers import restore_all
 from scripts.converters import restore_png_from_jxl, restore_png_from_webp, restore_png_from_npy
 
@@ -15,11 +15,8 @@ def main():
     Config.set('paths.src_dir', src_dir)
     Config.set('paths.dst_dir', dst_dir)
 
-    unpack_un()
-    unpack_c()
-    unpack_npy()
+    unpack_archive_all()
 
-#    restore_png_from_npy()
     restore_png_from_webp()
     restore_all()
 

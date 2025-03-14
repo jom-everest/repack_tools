@@ -21,7 +21,7 @@ class Config:
             'all': {
                 'archive_params': {
                     'type': '7z',
-                    'options': ["mx9", "ms=on"],
+                    'c_ratio': '9',
                 },
             },
             'un': {
@@ -35,15 +35,9 @@ class Config:
                 },
                 'archive_params': {
                     'type': '7z',
-                    'options': ["mx3", "ms=on"],
+                    'c_ratio': '3',
                 },
             },
-            'npy': {
-                'extensions': {'npy'},
-                'archive_params': {
-                    'type': '7z.PPDM',
-                },
-            }
         },
         # Расширения файлов
         'extensions': {
@@ -70,6 +64,7 @@ class Config:
             'cjxl_path': 'bin/cjxl.exe',
             'djxl_path': 'bin/djxl.exe',
             '7z_path': 'bin/7z.exe',
+            'repak_path': 'bin/repak.exe',
         },
         
         # Упаковщики
