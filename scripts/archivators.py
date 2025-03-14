@@ -3,6 +3,10 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import py7zr
+from PIL import Image
+import numpy as np
+
 
 from .config import Config
 from .utils import move_all_files_by_ext
@@ -61,12 +65,14 @@ def make_arc_npy():
 
 def unpack_npy():
     src_dir = Config.get('paths.src_dir')
-    dst_dir = Config.get('paths.dst_dir')
     target_file = os.path.join(src_dir, 'arc_npy.7z')
 
-    if os.path.exists(target_file):
-        Z_PATH = Config.get('tools.7z_path')
-        subprocess.run([Z_PATH, 'x', target_file, f"-o{dst_dir}"], check=True)
+    with py7zr.SevenZipFile(target_file, mode='r') as archive:
+        file_list = archive.getnames()
+        for file_name in file_list:
+            with archive.read([file_name]) as files:
+                image = Image.fromarray(np.load(files[file_name].read(), allow_pickle=True))
+                image.save(os.path.join(src_dir, file_name.replace('.npy', '.png')))
 
 def make_archive_from_uncompressible():
     src_dir = Config.get('paths.src_dir')
@@ -79,7 +85,7 @@ def make_archive_from_uncompressible():
     if files_count > 0:
         Z_PATH = Config.get('tools.7z_path')
         target_zip = os.path.join(dst_dir, 'arc_un.7z')
-        subprocess.run([Z_PATH, 'a', '-t7z', '-m0=LZMA2', '-mx1', '-mhe=off', '-mmt=8', "-ms=on", target_zip, os.path.join(target_dir, "*")], check=True)
+        subprocess.run([Z_PATH, 'a', '-t7z', '-m0=LZMA2', '-mx3', '-mhe=off', '-mmt=8', "-ms=on", target_zip, os.path.join(target_dir, "*")], check=True)
 
 def make_archive():
     src_dir = Config.get('paths.src_dir')
@@ -112,3 +118,34 @@ def make_archive():
             tar.add(dst_dir, arcname=os.path.basename(dst_dir))  # Добавляем каталог в архив
             process_zstd.stdin.close()
             process_zstd.wait()
+
+def make_archive(src_dir, target_name, archive_params):
+    Z_PATH = Config.get('tools.7z_path')
+    if (archive_params == None):
+        type = '7z', m = 'lzma2', mx = '9'
+    else:
+        type = '7z', m = 'lzma2', mx = '9'
+
+    target_arc = target_name + '.7z'
+    m0 = 'lzma2'
+    mx = '9'
+    if (archive_params.type == 'PPMD'):
+        m0 = 'ppmd'
+    subprocess.run([Z_PATH, 'a', '-t7z', f'-m0={m0}', f'-mx{mx}', '-mhe=off', '-mmt=8', "-ms=on", target_arc, os.path.join(src_dir, "*")], check=True)
+
+def make_archive_all():
+    src_dir = Config.get('paths.src_dir')
+    dst_dir = Config.get('paths.dst_dir')
+
+    for key, value in Config.get('groups').items():
+        if (key == 'all'): continue
+
+        target_dir = os.path.join(dst_dir, 'arc_' + key)
+        exts = value['extensions']
+#        os.makedirs(target_dir, exist_ok=True)
+        files_count = move_all_files_by_ext(src_dir, target_dir, exts)
+        if files_count > 0:
+            make_archive(target_dir, target_dir, value.get('archive_params'))
+
+    target_name = os.path.join(dst_dir, 'arc_' + 'all')
+    make_archive(src_dir, target_name, Config.get('groups.all.archive_params'))

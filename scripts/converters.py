@@ -151,7 +151,7 @@ def convert_png_to_npy():
     def wrapper(file):
         _convert_png_to_npy(file, src_dir=src_dir)
 
-    with ThreadPoolExecutor(max_workers = Config.get('max_threads')) as executor:
+    with ThreadPoolExecutor(max_workers = 2) as executor:
         executor.map(wrapper, files)
     move_files(src_dir, tmp_dir, files)
 

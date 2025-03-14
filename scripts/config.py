@@ -17,7 +17,34 @@ class Config:
             'buffer_size': 10**8,
             'use_long_mode': True,
         },
-        
+        'groups': {
+            'all': {
+                'archive_params': {
+                    'type': '7z',
+                    'options': ["mx9", "ms=on"],
+                },
+            },
+            'un': {
+                'extensions': {
+                    '.pjxl', '.pwebp',
+                    '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.jxl', 
+                    '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm',
+                    '.mp3', '.aac', '.ogg', '.m4a', '.opus', '.flac', '.alac',
+                    '.zip', '.rar', '.7z', '.gz', '.bz2', '.xz', '.tar.gz', '.tgz', '.tar.bz2', '.tar.xz',
+                    '.enc', '.gpg', '.pgp', '.rnd',
+                },
+                'archive_params': {
+                    'type': '7z',
+                    'options': ["mx3", "ms=on"],
+                },
+            },
+            'npy': {
+                'extensions': {'npy'},
+                'archive_params': {
+                    'type': '7z.PPDM',
+                },
+            }
+        },
         # Расширения файлов
         'extensions': {
             'user': {
