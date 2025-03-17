@@ -12,15 +12,29 @@ import os
 
 
 from .config import Config
-from .utils import remove_file, get_all_files_by_ext, move_files
+from .utils import remove_file, get_files_by_ext, move_files_fullpath
 
-def _compress_png_to_jxl(png_path, src_dir):
-    while True:
-        memory_info = psutil.virtual_memory()
-        free_memory_gb = memory_info.available / (1024 ** 3)
-        if free_memory_gb >= 4:
-            break
-        time.sleep(10)
+class ImageConverter:
+    tools_path = {
+        'cjxl_path': Config.get('tools.cjxl_path'),
+        'cwebp_path':  Config.get('tools.cwebp_path'),
+        'djxl_path': Config.get('tools.djxl_path'),
+        'dwebp_path':  Config.get('tools.dwebp_path'),
+    }
+    
+    @classmethod
+    def set_tool_path(cls, type, tool_path):
+        if type in cls.tools_path:
+            cls.tools_path[type] = tool_path
+
+    @classmethod
+    def _convert_png_to_jxl(png_path, src_dir):
+        while True:
+            memory_info = psutil.virtual_memory()
+            free_memory_gb = memory_info.available / (1024 ** 3)
+            if free_memory_gb >= 4:
+                break
+            time.sleep(10)
 
     CJXL_PATH = Config.get('tools.cjxl_path')
     full_png_path = os.path.join(src_dir, png_path)
@@ -35,43 +49,30 @@ def _compress_png_to_jxl(png_path, src_dir):
     ], capture_output=True, check=True)
 
 
-def compress_png_to_jxl():
-    src_dir = Config.get('paths.src_dir')
-    tmp_dir = Config.get('paths.tmp_dir')
-    files = get_all_files_by_ext(src_dir, '.png')
+    def convert_png_to_jxl(target_dir: Path): pass
 
-    def wrapper(file):
-        _compress_png_to_jxl(file, src_dir=src_dir)
+    @classmethod
+    def convert_png_to_webp_with_move(cls, src_dir: Path, to_dir: Path, exts): 
+        files = get_files_by_ext(src_dir, exts)
 
-    with ThreadPoolExecutor(max_workers = Config.get('max_threads')) as executor:
-        executor.map(wrapper, files)
+        with ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
+            executor.map(cls.__convert_png_to_webp, files)
 
-    move_files(src_dir, tmp_dir, files)
+        move_files_fullpath(src_dir, to_dir, files)
+        del files
 
-def _compress_png_to_webp(png_path, src_dir):
-    CWEBP_PATH = Config.get('tools.cwebp_path')
-    full_png_path = os.path.join(src_dir, png_path)
-    output_path = os.path.splitext(full_png_path)[0] + '.pwebp'
-    subprocess.run([
-        CWEBP_PATH, 
-        full_png_path, 
-        '-o', output_path,
-        '-lossless',
-        '-z', '9'
-    ], capture_output=True, check=True)
+    @classmethod
+    def __convert_png_to_webp(cls, png_path: Path):
+        output_path = str(png_path) + '.w'
+        subprocess.run([
+            cls.tools_path['cwebp_path'],
+            png_path, 
+            '-o', output_path,
+            '-lossless',
+            '-z', '9'
+        ], capture_output=True, check=True)
 
 def compress_png_to_webp():
-    src_dir = Config.get('paths.src_dir')
-    tmp_dir = Config.get('paths.tmp_dir')
-    files = get_all_files_by_ext(src_dir, '.png')
-
-    def wrapper(file):
-        _compress_png_to_webp(file, src_dir=src_dir)
-#        _compress_png_to_jxl(file, src_dir=src_dir)
-
-    with ThreadPoolExecutor(max_workers = Config.get('max_threads')) as executor:
-        executor.map(wrapper, files)
-    move_files(src_dir, tmp_dir, files)
 
 def remove_pjxl_files():
     src_dir = Path(Config.get('paths.src_dir'))
@@ -101,7 +102,7 @@ def restore_png_from_webp():
         _restore_png_from_webp(file, src_dir=target_dir)
         os.unlink(os.path.join(target_dir, file))
 
-    with ThreadPoolExecutor(max_workers = Config.get('max_threads')) as executor:
+    with ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
         executor.map(wrapper, files)
 
     OXI_PATH = Config.get('tools.oxi_path')

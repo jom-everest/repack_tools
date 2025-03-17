@@ -11,11 +11,26 @@ from .utils import remove_directory
 
 
 ##############
-def unzip_file(arc_path, suffix):
-    extract_dir = os.path.join(os.path.dirname(arc_path), os.path.splitext(os.path.basename(arc_path))[0] + suffix)
-    os.makedirs(extract_dir, exist_ok=True)
-    zipfile.ZipFile(arc_path, 'r').extractall(extract_dir)
-    print(f'Распакован: {os.path.basename(arc_path)} -> {extract_dir}')
+def unzip_file(arc_path, target_dir, suffix):
+    new_name = target_dir / f"{arc_path.name.stem}_{arc_path.name.suffix[1:]}"
+    with zipfile.ZipFile(arc_path, 'r') as zip_ref:
+        file_list = zip_ref.namelist()
+        if len(file_list) == 1 and file_list[0] == arc_path.name:
+            with zip_ref.open(file_list[0]) as file, open(new_name, 'wb') as new_file:
+                new_file.write(file.read())
+#            zip_ref.extractall(target_dir)
+#            os.rename(target_dir / arc_path.name, new_name)
+        else:
+            os.makedirs(new_name, exist_ok=True)
+            zip_ref.extractall(new_name)
+    print(f'Распакован: {arc_path.name}')
+
+
+    # extract_dir = os.path.join(os.path.dirname(arc_path), os.path.splitext(os.path.basename(arc_path))[0] + suffix)
+    # os.makedirs(extract_dir, exist_ok=True)
+    # zipfile.ZipFile(arc_path, 'r').extractall(extract_dir)
+    # print(f'Распакован: {os.path.basename(arc_path)} -> {extract_dir}')
+
 
 def zip_file(dir_path, arc_path):
     Z_PATH = Config.get('tools.7z_path')
@@ -46,41 +61,45 @@ def test_ue_file(arc_path):
 
 packers_info = {
     'zip': {
-        'ext': 'zip',
-        'suffix': '_zip',
         'pack': zip_file,
         'unpack': unzip_file,
-    },
-    'docx': {
-        'ext': 'docx',
-        'suffix': '_docx',
-        'unpack': unzip_file,
-        'pack': zip_file,
-    },
+        'exts': {'.zip', '.docx', '.dxanim'},
+    },   
     'ue_pak': {
-        'ext': 'pak',
         'suffix': '_ue_pak',
         'unpack': unpak_ue_file,
         'pack': pack_ue_file,
         'test': test_ue_file,
+        'exts': {'.pak'},
     },
 }
 
 def unpack_all():
-    src_dir = Config.get('paths.src_dir')
-    tmp_dir = Config.get('paths.tmp_dir')
+    src_dir = Path(Config.get('paths.src_dir'))
+    tmp_dir = Path(Config.get('paths.tmp_dir'))
 
-    for root, dirs, files in os.walk(src_dir):
-        for file in files:
+    for file_path in src_dir.rglob('*'):
+        if file_path.is_file():
             for _, packer in packers_info.items():
-                if file.endswith(packer['ext']) and packer['test'] != None and packer['test']():
-                    packer['unpack'](os.path.join(root, file), packer['suffix'])
+                if file_path.suffix in packer['exts'] and packer['test'] != None and packer['test'](file_path):
+                    packer['unpack'](target_dir / file_path.name, packer.get('suffix'))
 
-                    relative_path = Path(root).relative_to(Path(src_dir))
-                    target_dir = Path(tmp_dir) / relative_path
+                    target_dir = tmp_dir / file_path.parent.relative_to(src_dir)
                     target_dir.mkdir(parents=True, exist_ok=True)
-                    shutil.move(os.path.join(root, file), os.path.join(target_dir, file))
+                    shutil.move(file_path, target_dir / file_path.name)
                     break
+
+    # for root, _, files in os.walk(src_dir):
+    #     for file in files:
+    #         for _, packer in packers_info.items():
+    #             if os.path.splitext(file)[1] in packer['exts'] and packer['test'] != None and packer['test']():
+    #                 packer['unpack'](os.path.join(root, file), packer['suffix'])
+
+    #                 relative_path = Path(root).relative_to(Path(src_dir))
+    #                 target_dir = Path(tmp_dir) / relative_path
+    #                 target_dir.mkdir(parents=True, exist_ok=True)
+    #                 shutil.move(os.path.join(root, file), os.path.join(target_dir, file))
+    #                 break
 
 #    for root, dirs, files in os.walk(src_dir):
 #        for file in files:
