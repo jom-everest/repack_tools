@@ -111,20 +111,13 @@ def move_dir2(src_dir, dst_dir):
     shutil.rmtree(src_dir)
 
 
-def get_all_files_by_ext(src_dir, exts):
+def get_files_by_ext(src_dir, exts):
     if isinstance(exts, str):
         ext_set = {exts}
     else:
         ext_set = set(exts) if not isinstance(exts, set) else exts
 
-    all_files = []
-    for root, dirs, files in os.walk(src_dir):
-        for file in files:
-            if any(file.lower().endswith(ext) for ext in ext_set):
-                full_path = os.path.join(root, file)
-                all_files.append(os.path.relpath(full_path, src_dir))
-
-    return all_files
+    return [file for file in src_dir.rglob('*') if file.is_file() and file.suffix in exts]
 
 def get_all_files_by_ext2(src_dir, exts):
     src_dir = Path(src_dir)
@@ -140,15 +133,12 @@ def get_all_files_by_ext2(src_dir, exts):
         if file_path.is_file() and file_path.suffix.lower() in ext_set
     ]
 
-def move_files(src_dir, dst_dir, relative_paths):
-    if not os.path.exists(dst_dir):
-        os.makedirs(dst_dir)
-
-    for rel_path in relative_paths:
-        src_file = os.path.join(src_dir, rel_path)
-        dst_file = os.path.join(dst_dir, rel_path)
-        os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+def move_files_fullpath(src_dir, dst_dir, full_paths):
+    for path in full_paths:
+        dst_path = dst_dir / path.relative_to(src_dir)
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            shutil.move(src_file, dst_file)
+            path.rename(dst_path)
+#            shutil.move(str(path), str(dst_path))
         except Exception as e:
-            print(f"ОШИБКА: Не удалось переместить {src_file}: {e}")
+            print(f"ОШИБКА: Не удалось переместить {path}: {e}")
