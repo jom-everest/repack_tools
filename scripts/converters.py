@@ -60,6 +60,7 @@ class ImageConverter:
     @classmethod
     def remove_pwebp_files(cls, target_dir: Path):
         for file_path in target_dir.rglob('.w'):
+            os.unlink(file_path)
 
     @classmethod
     def convert_png_to_webp_with_move(cls, src_dir: Path, to_dir: Path, exts): 
