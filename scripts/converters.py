@@ -60,8 +60,27 @@ class ImageConverter:
     @classmethod
     def remove_pwebp_files(cls, target_dir: Path):
         for file_path in target_dir.rglob('.w'):
-            os.unlink(file_path)
 
+    @classmethod
+    def convert_png_to_webp_with_move(cls, src_dir: Path, to_dir: Path, exts): 
+        files = get_files_by_ext(src_dir, exts)
+
+        with ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
+            executor.map(cls.__convert_png_to_webp, files)
+
+        move_files_fullpath(src_dir, to_dir, files)
+        del files
+
+    @classmethod
+    def __convert_png_to_webp(cls, png_path: Path):
+        output_path = str(png_path) + '.w'
+        subprocess.run([
+            cls.tools_path['cwebp_path'],
+            png_path, 
+            '-o', output_path,
+            '-lossless',
+            '-z', '9'
+        ], capture_output=True, check=True)
 
     @classmethod
     def restore_png_from_webp(cls, target_dir: Path):

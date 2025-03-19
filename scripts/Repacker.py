@@ -3,7 +3,6 @@ from pathlib import Path
 import shutil
 import configparser
 
-
 from scripts import utils
 from .packers import PackerZip, PackerUePak
 from .converters import ImageConverter
